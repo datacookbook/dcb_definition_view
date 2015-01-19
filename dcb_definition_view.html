@@ -1,0 +1,484 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xml:lang="en" xmlns="http://www.w3.org/1999/xhtml" lang="en">
+	<head>
+<!--
+Welcome to the Data Cookbook Definition Viewer
+
+This is a single html file that uses javascript to invoke the Data Cookbook APIs to provide
+a view of a single definition.  It is intended to be linked to from another location giving 
+the viewer an easy way to read a definition without logging in to the cookbook.
+
+Follow these steps to make use of this search tool:
+
+1) Copy this html file onto an internal web server and test:
+
+		//
+		//   Identify a location for the dcb_definition_view.html file on your internal web server.  
+		//   For example, it should be something like http://myserver/path/dcb_definition_view.html
+		//
+		//   Test putting this URL into your browser:
+		//    
+		//    http://myserver/path/dcb_definition_view.html?id=1097
+		//
+		//   That should show a view of our demo account's definition "Active Academic Program".  
+		//
+
+2) Configure for your account:
+		//  Change the following values to be your subdomain, a valid login and password (it is good to use a user that only has viewer privileges)
+-->
+<script type="text/javascript">
+		DCB_SUBDOMAIN = 'idatau.demo';
+		DCB_USERNAME = 'guest';
+		DCB_PASSWORD = 'cookbook99';
+		
+		// this controls whether the view will have clickable links into your cookbook
+		// set to YES if the users should be allowed to click on links to go into the cookbook from here
+		//DCB_SHOW_LINKS = 'yes';
+		// set to no if you don't want them to be links (for public presentation where the people seeing this won't have access)
+		DCB_SHOW_LINKS = 'no';		
+</script>
+<!--
+
+3) Test viewing your approved definitions for specific IDs or names as follows:
+    For using an id, do the following:    ?id=1097
+    For using the name, do the following:   ?name=Active Academic Program
+    
+
+4) Now we have a functioning definition view tool.  We can start to use it in one of two ways:
+
+ - Pop-up HTML link from any web page:
+ <a href="http://myserver/path/dcb_definition_view.html?id=1097" 
+ onclick="javascript:void window.open('http://myserver/path/dcb_definition_view.html?id=1097', 
+       'datacookbook', 'scrollbars=yes,center,height=250,width=300'); return false;">
+       View the Data Cookbook for Definitions</a>
+ 
+ - Link on a document or web page:
+      <a href="http://myserver/path/dcb_definition_view.html?id=1097">click to see the definition</a>
+      or just
+  		http://myserver/path/dcb_definition_view.html?id=1097
+		http://myserver/path/dcb_definition_view.html?name=Active Academic Program
+
+-->
+		<title>Data Cookbook Definition</title>
+		
+		<style>
+			body {
+				background:#003355; 
+				color:#555; 
+				font-family: Arial, Helvetica, sans-serif; 
+				font-size:12pt; 
+				font-style:normal; 
+				font-variant:normal; 
+				font-weight:normal; 
+			}
+
+			/* this is the result window */
+			.smallbox { 
+				width:450px; 
+				float:left; 
+				background:#FFFFFF;
+				padding: 2px; 
+			}
+
+			.definition_list {}
+			.definition {}
+			.definition_name {padding: 5px; font-size: 18pt; font-weight:bold;}
+			.functional_definition { margin: 5px;}
+		</style>
+		
+		<!-- Meta Data: Begin -->
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<meta http-equiv="Pragma" content="no-cache" />
+		<meta http-equiv="Expires" content="-1" /><!-- Meta Data: End -->
+
+	</head>
+	<body>
+		<div class="smallbox">
+			<div id="dcb_definition" name="dcb_definition">
+			</div>
+		</div>
+	</body>
+				
+<script type="text/javascript">
+		/////////////////////////////////////////////////////////////////////////////////////
+		// 
+		// Get the arguments from the URL
+		// 
+		var url_parms = get_url_params(window.location.href);
+		var match_type = '';
+		var match_id = '';
+		
+		if (url_parms.term_id!==undefined) { 
+			match_type = 'term_id';
+			match_id = url_parms.term_id;
+		} else {
+			if (url_parms.version_id!==undefined) {
+				match_type = 'version_id';
+				match_id = url_parms.version_id;
+			} else {
+				if (url_parms.name!==undefined) {
+					match_type = 'exact_text';
+					match_id = url_parms.name;
+				}
+			}
+		}
+
+		//
+		DCB_BASE_URL = 'https://' + DCB_SUBDOMAIN + '.datacookbook.com';
+
+		if (match_id.length>0) {
+			/////////////////////////////////////////////////////////////////////////////////////
+			//
+			// get report info
+			//
+			request = new dcb_serviceRequest();
+			request.requestType = 'term_lookup';
+			request.service_url = DCB_BASE_URL + '/institution/terms/lookup';
+			request.lookup = match_id;
+			request.matchType = match_type;
+			request.submitRequest();
+
+		} else {
+			resultsElement = document.getElementById("dcb_definition");
+			//resultsElement.appendChild(document.createTextNode("Error: No definition ID or name provided.  A definition ID or name must be provided as a parameter in the URL.  One of the following options needs to be added to the URL:  ?term_id=9999 (for an approved definition)    ?version_id=8888 (for any specific definition version)   ?name=Active Program  (to get the definition by the name)"));
+			resultsElement.innerHTML = "<b>Error:</b> No definition ID or name provided.<br><br>A definition ID or name must be provided as a parameter in the URL.  Use one of the following options:  <ul><li>?term_id=9999 (for an approved definition)</li><li>?version_id=8888 (for any specific definition version)</li><li>?name=Active Program  (to get the definition by the name)</li></ul>";
+			
+		}
+		
+
+		//
+		// Function to parse GET parameters from URL
+		//
+		function get_url_params(u){
+			var theURL = u;
+			var JS_GET = new Object();
+			var splitURL = theURL.split('?');
+	
+			if(splitURL.length>1){
+				var splitVars = splitURL[1].split('&');
+				for(i=0; i< splitVars.length; i++){
+					splitPair = splitVars[i].split('=');
+					JS_GET[splitPair[0]] = splitPair[1];
+				}//end for
+				return JS_GET;
+			}//end if
+			else{
+				return false;
+			}
+		}
+		//end get_url_params
+
+
+		
+		
+				///////////////////////////////////////////////////////////////////////////////////////////////////////
+		//
+		// main handler function for responses from the API
+		//
+		function dcb_processResponse( data_IN ) {
+			// declare variables
+			var responseCode = '';
+			var responseMessage = '';
+			var requestType = '';
+			//
+			// variables for building up the content to insert into HTML
+			//
+			var termList = '';
+			var termCount = -1;
+			var termListIndex = -1;
+			var currentTerm = null;
+			var termName = '';
+			var termFunctionalDefinition = '';
+			var termUrl = '';
+			var resultsElement = '';   // div to store the results
+			var headerElement = '';
+			var termListHtml = '';
+			var headerTextElement = null;
+			var headerLinkElement = null;
+			var bodyElement = '';
+			var listElement = '';
+			//
+			// get response status
+			//
+			responseCode = data_IN.ResponseStatus.ResponseCode;
+			responseMessage = data_IN.ResponseStatus.ResponseMessage;
+			if ( responseCode == 0 ) {
+				// success.  Get request type to see what we need to do now.
+				requestType = data_IN.ServiceName;
+				if ( requestType != '' ) {
+					switch (requestType) {
+						case 'term_lookup':
+							//
+							// Find the existing DIV, hide it, then clear it
+							//
+							resultsElement = document.getElementById("dcb_definition");
+							resultsElement.style.display = "none";
+							resultsElement.innerHTML = "";
+	
+
+							// now, build and attach the element that will hold the
+							//    returned search terms
+							bodyElement = document.createElement( "div" );
+							bodyElement.setAttribute( "class", "viewBody" );
+							// bodyElement.appendChild( document.createElement( "br" ) );
+							resultsElement.appendChild( bodyElement );
+
+							listElement = document.createElement( "div" );
+							listElement.setAttribute( "class", "definition_list" );
+							bodyElement.appendChild( listElement );
+
+							// loop over term array, load and render each
+							//    term in the list.
+							termList = data_IN.TermList;
+
+							// got a term list?
+							if ( termList != null )
+							{
+								// get count, see if we have terms.
+								termCount = termList.length;
+								if ( termCount > 0 )
+								{
+									// got at least one term.  Get the element we will store the
+									//    results in, then output stuff that goes before the
+									//    list of terms.
+
+									for( termListIndex = 0; termListIndex < termCount; termListIndex++ )
+									{
+										// get next term to process.
+										currentTerm = termList[ termListIndex ][ 'Term' ];
+
+										termName = currentTerm.name;
+										termFunctionalDefinition = currentTerm.term_functional_definition;
+										termUrl = currentTerm.perma_link_url;
+
+										// create list HTML for term.
+										termListHtml += '<div class="definition">';
+										termListHtml += '<div class="definition_name">';
+										if (DCB_SHOW_LINKS == 'yes') {
+											termListHtml += "<a target=\"_blank\" class=\"eventLink url\" href=\"" + termUrl + "\">" + termName + "</a>\n";
+										} else {
+											termListHtml += "<b>" + termName + "</b>\n";
+										}
+										termListHtml += "</div>";
+										termListHtml += '<div class="functional_definition">';
+										termListHtml += "<p>" + termFunctionalDefinition + "</p>\n";
+										termListHtml += "</div>";
+										termListHtml += '</div>';
+
+									} //-- end loop over terms. --//
+
+									// put the list of terms in the list element
+									listElement.innerHTML = termListHtml;
+
+								} //-- end check to see if we have any terms --//
+								else //-- no matches found. --//
+								{
+									listElement.innerHTML = "No definitions match the term_id, version_id or name provided.";
+								}
+
+							}
+							else
+							{
+								// no terms returned.  Output a no results message.
+								listElement.innerHTML = "No definitions match the term_id, version_id or name provided.";
+							}
+
+							 // done with the loop, so make visible
+							resultsElement.style.display = "block";
+							break;
+	
+						default:
+							alert( "Error processing Data Cookbook service request: Service " + requestType + " unknown.  ResponseCode: " + responseCode + "; ResponseMessage: " + responseMessage );
+					} 
+				}
+				else {
+					//-- no request type in response - which service? --//
+					// no request type returned.  Error.
+					alert( "Error processing Data Cookbook service request: No service type returned.  ResponseCode: " + responseCode + "; ResponseMessage: " + responseMessage );
+				}
+			}
+			else {
+				//-- error response code returned --//
+				// error.  Output alert, do nothing.
+				alert( "Error processing Data Cookbook service request:  Error code returned.  ResponseCode: " + responseCode + "; ResponseMessage: " + responseMessage );
+			}
+			
+
+		}
+
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////////
+		//
+		// Main class definition for an API call
+		//
+		function dcb_serviceRequest() {
+			//
+			// these are standard for every instance of this class
+			// each one must also be represented in the createRequestURL function
+			//
+			this.token = '';
+			this.username = DCB_USERNAME;
+			this.password = DCB_PASSWORD;
+			this.outputFormat = 'json';
+			this.jsonFunction = 'dcb_processResponse';
+			this.jsonVariable = '';
+			//
+			// these should be set based on form data when creating an instance
+			//
+			this.requestType = '';
+			this.lookup = '';
+			this.search = '';
+			this.matchType = '';
+			this.service_url = '';
+			//
+			// specific to term list API
+			//
+			this.status = '';
+			this.dataSystem = '';
+			this.functionalArea = '';
+			this.termSource = '';
+			this.tag = '';
+			
+			// 
+			// Pieces together the arguments for the request URL
+			//
+			this.createRequestURL = function() {
+				// initialize the variable to hold the complete URL being constructed
+				var URL_OUT = this.service_url;
+
+				// set the first paramater prefix, after the first one, a & will be used.
+				var paramPrefix = '?';
+
+				// see what properties have values, append those with values.
+
+				if ( this.requestType != '' ) {
+					URL_OUT += paramPrefix + "requestType=" + this.requestType;
+					paramPrefix = '&';
+				}
+				if ( this.username != '' ) {
+					URL_OUT += paramPrefix + "un=" + this.username;
+					paramPrefix = '&';
+				}
+				if ( this.token != '' ) {
+					URL_OUT += paramPrefix + "OR=" + this.token;
+					paramPrefix = '&';
+				}
+				if ( this.password != '' ) {
+					URL_OUT += paramPrefix + "pw=" + this.password;
+					paramPrefix = '&';
+				}
+				if ( this.outputFormat != '' ) {
+					URL_OUT += paramPrefix + "outputFormat=" + this.outputFormat;
+					paramPrefix = '&';
+				}
+				if ( this.jsonFunction != '' ) {
+					URL_OUT += paramPrefix + "jsonFunction=" + this.jsonFunction;
+					paramPrefix = '&';
+				}
+				if ( this.jsonVariable != '' ) {
+					URL_OUT += paramPrefix + "jsonVariable=" + this.jsonVariable;
+					paramPrefix = '&';
+				}
+				if ( this.matchType != '' ) {
+					URL_OUT += paramPrefix + "matchType=" + this.matchType;
+					paramPrefix = '&';
+				}
+				if ( this.lookup != '' ) {
+					URL_OUT += paramPrefix + "lookup=" + this.lookup;
+					paramPrefix = '&';
+				}
+				if ( this.search != '' ) {
+					URL_OUT += paramPrefix + "search=" + this.search;
+					paramPrefix = '&';
+				}
+				//
+				// term list specific ones
+				//
+				if ( this.status != '' ) {
+					URL_OUT += paramPrefix + "status=" + this.status;
+					paramPrefix = '&';
+				}
+				if ( this.dataSystem != '' ) {
+					URL_OUT += paramPrefix + "dataSystem=" + this.dataSystem;
+					paramPrefix = '&';
+				}
+				if ( this.functionalArea != '' ) {
+					URL_OUT += paramPrefix + "functionalArea=" + this.functionalArea;
+					paramPrefix = '&';
+				}
+				if ( this.termSource != '' ) {
+					URL_OUT += paramPrefix + "termSource=" + this.termSource;
+					paramPrefix = '&';
+				}
+				if ( this.tag != '' ) {
+					URL_OUT += paramPrefix + "tag=" + this.tag;
+					paramPrefix = '&';
+				}
+
+				return URL_OUT;
+			};
+
+			//
+			// Outputs contents of this object as a string.
+			//
+			// @return string - contents of this object.	
+			//
+			this.outputContents = function() {
+				// return reference
+				var string_OUT = '';
+
+				// declare variables
+				var currentPropName = '';
+				var outputArray = new Array();
+				var itemCount = 0;
+				var currentValue = '';
+				var currentValueType = '';
+
+				// loop over properties
+				for( currentPropName in this ) {
+					// add current property to output array
+					currentValue = this[ currentPropName ];
+
+					// only output strings, numbers, and booleans.
+					currentValueType = typeof( currentValue );
+					if ( ( currentValueType == "string" ) || ( currentValueType == "number" ) || ( currentValueType == "boolean" ) ) {
+						outputArray[ itemCount ] = currentPropName + "=\"" + this[ currentPropName ] + "\"";
+						itemCount++;
+					}
+				}
+				// join the items in array together with "; ".
+				string_OUT = outputArray.join( ";\n " );
+				// append name of this class to the front.
+				string_OUT = "Contents of service request: " + string_OUT;
+				return string_OUT;
+			};
+
+			//
+			// Uses variables internal to this object to create the URL of the JSONP
+			// javascript include service for our request, then writes the request
+			// into a script tag at the end of the document
+			//
+			this.submitRequest = function() {
+				// declare variables
+				var requestURL = '';
+				var scriptElement = null;
+
+				// get request URL
+				requestURL = this.createRequestURL();
+				//alert('URL created: ' + requestURL);
+		
+				
+				scriptElement = document.createElement( "script" );
+				scriptElement.setAttribute( "src", requestURL );
+				scriptElement.setAttribute( "type", "text/javascript" );
+				document.body.appendChild( scriptElement );
+			};
+
+		}
+
+		
+		
+</script>
+
+</html>
